@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Maths Chess: Year 7 Calculations</title>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#eef3f1;--ink:#17262b;--lt:#dfe9e2;--dk:#3f7a6d;--ac:#f2b134;--card:#fff;--mut:#5b6e72;--ok:#2e9e5b;--bad:#d1495b;--s:min(92vw,520px);box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);color-scheme:light}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#101c1b;--ink:#e6f0ec;--lt:#a9c4b6;--dk:#2f5f56;--card:#1b2c2a;--mut:#9ab3ad;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#101c1b;--ink:#e6f0ec;--lt:#a9c4b6;--dk:#2f5f56;--card:#1b2c2a;--mut:#9ab3ad;color-scheme:dark}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:Fredoka,system-ui,sans-serif;display:flex;flex-direction:column;align-items:center;padding:16px 12px 32px}
+h1{font-size:1.7rem;margin:0 0 4px;font-weight:600}
+.sub{color:var(--mut);margin:0 0 14px;font-size:.95rem}
+main{display:flex;flex-wrap:wrap;gap:20px;justify-content:center;width:100%;max-width:1000px}
+#board{width:var(--s);height:var(--s);display:grid;grid-template-columns:repeat(8,minmax(0,1fr));grid-template-rows:repeat(8,minmax(0,1fr));border-radius:4px;overflow:hidden;font-size:calc(var(--s)/8*.86);font-family:"Segoe UI Symbol","Noto Sans Symbols 2","DejaVu Sans","Apple Symbols",serif}
+.sq{display:flex;align-items:center;justify-content:center;position:relative;line-height:1;cursor:pointer;user-select:none;min-width:0;min-height:0;overflow:hidden}
+.sq.l{background:#ebecd0}.sq.d{background:#739552}
+.sq.last::after{content:"";position:absolute;inset:0;background:var(--ac);opacity:.35}
+.sq.sel{outline:4px solid #f6f669;outline-offset:-4px}
+.sq.hint::before{content:"";position:absolute;width:28%;height:28%;border-radius:50%;background:var(--ac);opacity:.85;z-index:2}
+.sq.hint.cap::before{width:86%;height:86%;background:none;border:4px solid var(--ac)}
+.pc{position:relative;z-index:1}
+.pc{display:block;line-height:1;transform:translateY(-4%);paint-order:stroke fill;-webkit-text-stroke:calc(var(--s)/8*.05) #222}
+.w{color:#fff;text-shadow:0 .02em 0 rgba(0,0,0,.25)}
+.k{color:#4a4a4a;-webkit-text-stroke-color:#111;text-shadow:0 .02em 0 rgba(0,0,0,.25)}
+aside{width:min(92vw,400px);display:flex;flex-direction:column;gap:12px}
+#score{display:flex;gap:16px;font-weight:500}
+.lv{display:flex;gap:8px;align-items:center;font-weight:500}
+#lobby{display:flex;gap:8px}#lobby button,#lobby input{font:inherit;padding:10px;border-radius:8px;border:2px solid var(--dk);background:var(--card);color:var(--ink)}#lobby input{flex:1;min-width:0;text-transform:uppercase}#lobby button{cursor:pointer}#room{font-weight:500;min-height:1.2em}
+.lv select{font:inherit;padding:6px 8px;border-radius:8px;border:2px solid var(--dk);background:var(--card);color:var(--ink)}
+#score b{font-weight:600}
+#status{padding:10px 14px;border-radius:10px;background:var(--dk);color:#fff;font-weight:500}
+#card{background:var(--card);border-radius:12px;padding:16px;border:2px solid var(--dk)}
+#q{font-size:1.25rem;font-weight:500;margin:0 0 12px;line-height:1.35}
+#opts{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+#opts button{font:inherit;font-size:1.05rem;padding:12px 8px;border-radius:8px;border:2px solid var(--dk);background:transparent;color:var(--ink);cursor:pointer}
+#opts button:hover:not(:disabled){background:var(--lt);color:#17262b}
+#opts button:focus-visible,#new:focus-visible,.sq:focus-visible{outline:3px solid var(--ac);outline-offset:2px}
+#opts button.ok{background:var(--ok);border-color:var(--ok);color:#fff}
+#opts button.no{background:var(--bad);border-color:var(--bad);color:#fff}
+#fb{margin-top:10px;min-height:1.4em;font-weight:500}
+#new{font:inherit;padding:10px;border-radius:8px;border:2px solid var(--ac);background:transparent;color:var(--ink);cursor:pointer}
+@media(max-width:420px){#opts{grid-template-columns:1fr}}
+</style></head><body>
+<h1>Maths Chess</h1>
+<p class="sub">Turns alternate. Answer right to make your move. Answer wrong and you skip your turn.</p>
+<main>
+<div id="board" role="grid" aria-label="Chess board"></div>
+<aside>
+<div id="lobby"><button id="mk">Create game</button><input id="cd" placeholder="Game code" maxlength="5" aria-label="Game code"><button id="jn">Join</button></div><div id="room" aria-live="polite"></div>
+<label class="lv">Bot level <select id="lvl"><option value="0">Easy</option><option value="2" selected>Medium</option><option value="4">Hard</option></select></label><div id="score"></div>
+<div id="status"></div>
+<div id="card"><p id="q"></p><div id="opts"></div><div id="fb" aria-live="polite"></div></div>
+<button id="new">New game vs bot</button>
+</aside>
+</main>
+<script>
+(()=>{
+const R=(a,b)=>Math.floor(Math.random()*(b-a+1))+a;
+const f=x=>String(+(+x).toFixed(4));
+const sh=a=>[...a].sort(()=>Math.random()-.5);
+const co=n=>n==1?'':n;
+const sg=n=>n<0?'− '+(-n):'+ '+n;
+const N=(q,c,w)=>[q,f(c),w.map(f)];
+const G=[
+()=>{const ds=sh([1,2,3,4,5,6,7,8,9]).slice(0,5),k=R(0,4),n=+ds.join(''),v=p=>(ds[k]*10**p).toLocaleString('en-US');
+ return[`What is the value of the digit ${ds[k]} in ${n.toLocaleString('en-US')}?`,v(4-k),[0,1,2,3,4].filter(p=>p!=4-k).map(v)]},
+()=>{const n=R(1000,99999),u=[10,100,1000][R(0,2)],c=Math.round(n/u)*u;
+ return N(`Round ${n.toLocaleString('en-US')} to the nearest ${u}.`,c,[c+u,c-u,Math.floor(n/u)*u+u*2])},
+()=>{const x=R(10000,99999)/10000,c=+x.toFixed(2);
+ return N(`Round ${f(x)} to 2 decimal places.`,c,[+x.toFixed(1),+x.toFixed(3),c+.01,c-.01])},
+()=>{const a=R(100,999)/10,b=R(10,99)/100;return N(`${f(a)} + ${f(b)} =`,a+b,[a+b+.1,a+b-.1,a+b+1,a+b-.9,(a+b)*10])},
+()=>{const a=R(200,999)/10,b=R(10,99)/100;return N(`${f(a)} − ${f(b)} =`,a-b,[a-b+.1,a-b-.1,a-b+1,a-b+.9,a-b-.8])},
+()=>{const a=R(12,98)/10,b=R(2,9),c=a*b;return N(`${f(a)} × ${b} =`,c,[c*10,c/10,c+1,c-1])},
+()=>{const n=R(10,99),c=n/8;return N(`${n} ÷ 8 =`,c,[c+.125,c-.125,c+.25,c*10,c+1])},
+()=>{const a=R(2,9),b=R(2,9),c=R(2,9),r=a+b*c;return N(`${a} + ${b} × ${c} =`,r,[(a+b)*c,r+1,r-1,r+c])},
+()=>{const a=R(2,9),s=R(2,9),b=R(2,9);return N(`${a}² + √${s*s} × ${b} =`,a*a+s*b,[(a*a+s)*b,a*a+s*b+s,a+s+b,a*2+s*b])},
+()=>{const a=R(1,5),b=R(1,4),c=R(2,9),r=(a+b)**2-c;return N(`(${a} + ${b})² − ${c} =`,r,[a*a+b*b-c,(a+b)*2-c,r+c*2,r+2])},
+()=>{const a=R(2,9),b=R(2,9);return N(`−${a} − ${b} =`,-(a+b),[a+b,b-a,a-b,-(a+b)+2*Math.min(a,b)])},
+()=>{const a=R(2,9),b=R(2,9);return N(`${a} − (−${b}) =`,a+b,[a-b,b-a,-(a+b),a+b+1])},
+()=>{const a=R(2,9),b=R(2,9),t=R(0,1);return t?N(`(−${a}) × ${b} =`,-a*b,[a*b,-a-b,a-b,-a*b+1]):N(`(−${a*b}) ÷ (−${b}) =`,a,[-a,a*b,b,a+1])},
+()=>{const x=R(12,999)/10,m=[10,100,1000][R(0,2)],t=R(0,1),c=t?x*m:x/m;
+ return N(t?`${f(x)} × ${m} =`:`${f(x)} ÷ ${m} =`,c,[t?c*10:c/10,t?c/10:c*10,x*m,x/m].filter(v=>f(v)!=f(c)))},
+()=>{const a=R(2,6),b=R(2,6),c=R(1,a-1),d=R(1,5),B=b+d;
+ return[`Simplify ${a}x + ${b}y − ${c}x + ${d}y`,`${co(a-c)}x + ${B}y`,[`${a+c}x + ${B}y`,`${co(a-c)}x + ${b-d}y`,`${a-c+B}xy`]]},
+()=>{const a=R(2,9),b=R(2,9);return[`In the expression ${a}x + ${b}, what is the coefficient of x?`,String(a),[String(b),String(a+b),'1','x']]},
+()=>{const a=R(2,9),b=R(2,9),t=R(0,1),s=t?'−':'+';
+ return[`Expand ${a}(x ${s} ${b})`,`${a}x ${s} ${a*b}`,[`${a}x ${s} ${b}`,`x ${s} ${a*b}`,`${a}x ${t?'+':'−'} ${a*b}`]]},
+()=>{const a=R(2,5),b=R(1,6),c=R(2,5),d=R(1,6),k=a*b-c*d;
+ return[`Expand and simplify ${a}(x + ${b}) + ${c}(x − ${d})`,`${a+c}x ${sg(k)}`,[`${a+c}x ${sg(a*b+c*d)}`,`${a+c}x ${sg(b-d)}`,`${a-c}x ${sg(k)}`]]},
+()=>{const a=R(2,7),b=R(2,7);return[`Expand and simplify x(x + ${a}) + ${b}x`,`x² + ${a+b}x`,[`x² + ${a*b}x`,`2x + ${a+b}x`,`x² + ${a}x + ${b}`]]},
+()=>{const a=R(2,6),b=R(2,6),c=R(1,a+b-1),r=a+b-c;return[`Simplify ${a}x² + ${b}x² − ${c}x²`,`${r}x²`,[`${r}x⁴`,`${a+b+c}x²`,`${r}x`]]},
+()=>{let a;do{a=Array.from({length:5},()=>R(1,15))}while(a.reduce((s,x)=>s+x)%5);const m=a.reduce((s,x)=>s+x)/5;
+ return N(`Find the mean of ${a.join(', ')}.`,m,[m+1,m-1,m+2,sh(a)[0]])},
+()=>{const a=sh([...new Set(Array.from({length:30},()=>R(1,20)))]).slice(0,5),s=[...a].sort((x,y)=>x-y);
+ return[`Find the median of ${a.join(', ')}.`,String(s[2]),[s[1],s[3],a[2]===s[2]?s[0]:a[2],s[4]].map(String)]},
+()=>{const p=sh([...new Set(Array.from({length:30},()=>R(1,20)))]).slice(0,4),l=sh([p[0],p[0],p[1],p[2],p[3]]);
+ return[`Find the mode of ${l.join(', ')}.`,String(p[0]),[p[1],p[2],p[3]].map(String)]},
+()=>{let fr,t,s;for(let i=0;i<300;i++){fr=[R(1,6),R(1,6),R(1,6),R(1,6)];t=fr.reduce((a,b)=>a+b);s=fr.reduce((a,b,j)=>a+b*(j+1),0);if(s%t==0)break}
+ const m=s/t;return N(`A table shows x = 1, 2, 3, 4 with frequencies ${fr.join(', ')}. What is the mean of x?`,m,[2.5,m+1,m-1,s,t])},
+()=>{const a=R(50,90)/10,b=a+R(1,8)/10,t=R(0,1);
+ return[`Class A has a mean of ${f(t?a:b)} and Class B has a mean of ${f(t?b:a)}. Which class scored higher on average?`,t?'Class B':'Class A',[t?'Class A':'Class B','They are equal','Cannot tell']]}
+];
+const GL={k:'♚',q:'♛',r:'♜',b:'♝',n:'♞',p:'♟'},V={p:1,n:3,b:3,r:5,q:9,k:0};
+const isW=p=>p===p.toUpperCase();
+const D8=[[1,0],[-1,0],[0,1],[0,-1],[1,1],[1,-1],[-1,1],[-1,-1]];
+const DIR={r:D8.slice(0,4),b:D8.slice(4),q:D8,k:D8,n:[[1,2],[2,1],[-1,2],[-2,1],[1,-2],[2,-1],[-1,-2],[-2,-1]]};
+function mv(b,i){const p=b[i],t=p.toLowerCase(),w=isW(p),r=i>>3,c=i&7,o=[],ok=(x,y)=>x>=0&&x<8&&y>=0&&y<8,en=q=>q&&isW(q)!==w;
+ if(t=='p'){const d=w?-1:1,r2=r+d;if(ok(r2,c)&&!b[r2*8+c]){o.push(r2*8+c);if(r==(w?6:1)&&!b[(r2+d)*8+c])o.push((r2+d)*8+c)}
+  for(const dc of[-1,1])if(ok(r2,c+dc)&&en(b[r2*8+c+dc]))o.push(r2*8+c+dc);return o}
+ const sl='qrb'.includes(t);
+ for(const[dr,dc]of DIR[t]){let x=r+dr,y=c+dc;while(ok(x,y)){const q=b[x*8+y];if(!q)o.push(x*8+y);else{if(en(q))o.push(x*8+y);break}if(!sl)break;x+=dr;y+=dc}}
+ return o}
+function ap(b,i,j){const n=b.slice(),p=n[i];n[j]=p;n[i]='';if(p=='P'&&j<8)n[j]='Q';if(p=='p'&&j>55)n[j]='q';return n}
+function inCheck(b,s){const k=b.indexOf(s==1?'K':'k');return b.some((p,i)=>p&&isW(p)!==(s==1)&&mv(b,i).includes(k))}
+function legal(b,s){const o=[];b.forEach((p,i)=>{if(p&&isW(p)==(s==1))mv(b,i).forEach(j=>{if(b[j].toLowerCase()=='k')return;if(!inCheck(ap(b,i,j),s))o.push([i,j])})});return o}
+const ev=b=>b.reduce((s,p)=>p?s+(isW(p)?1:-1)*V[p.toLowerCase()]:s,0);
+function gen(b,s){const o=[],cv=j=>b[j]?V[b[j].toLowerCase()]+1:0;b.forEach((p,i)=>{if(p&&isW(p)==(s==1))mv(b,i).forEach(j=>o.push([i,j]))});return o.sort((x,y)=>cv(y[1])-cv(x[1]))}
+function ng(b,s,d,a,be){if(!d)return s*ev(b);let best=-1e9;for(const[i,j]of gen(b,s)){if(b[j]&&b[j].toLowerCase()=='k')return 1000+d;const v=-ng(ap(b,i,j),-s,d-1,-be,-a);if(v>best)best=v;if(v>a)a=v;if(a>=be)break}return best==-1e9?0:best}
+function aiPick(b){const L=legal(b,-1),d=+$('lvl').value;if(!L.length)return null;
+ if(!d){const c=L.filter(m=>b[m[1]]),p=c.length&&Math.random()<.4?c:L;return p[R(0,p.length-1)]}
+ let best=-1e9,pick=null;
+ for(const[i,j]of L){const nb=ap(b,i,j);let sc;
+  if(!legal(nb,1).length)sc=inCheck(nb,1)?1000:0;else sc=-ng(nb,1,d-1,-1e9,1e9);
+  sc+=Math.random()*.2;if(sc>best){best=sc;pick=[i,j]}}
+ return pick}
+let B,sel,phase,cur,last=[],over=false,sc={r:0,w:0},hints=[];
+let mode='bot',me=1,flip=false,unsub=null,dbh=null,myid=null,code='',dbs=null;const online=()=>mode=='online';
+const $=id=>document.getElementById(id);
+const START=()=>['r','n','b','q','k','b','n','r',...Array(8).fill('p'),...Array(32).fill(''),...Array(8).fill('P'),'R','N','B','Q','K','B','N','R'];
+function init(){if(unsub){unsub();unsub=null}mode='bot';me=1;flip=false;$('room').textContent='';B=START();
+ sel=null;last=[];over=false;sc={r:0,w:0};ask()}
+function mkQ(){const[q,c,w]=G[R(0,G.length-1)]();const s=new Set(w.map(String));s.delete(c);let k=1;const n=parseFloat(c);
+ while(s.size<3&&k<30){if(!isNaN(n))s.add(f(n+k));k++;if(!isNaN(n)&&s.size<3)s.add(f(n-k))}s.delete(c);
+ return{q,c,o:sh([c,...sh([...s]).slice(0,3)])}}
+function ask(){if(over)return;phase='q';sel=null;hints=[];cur=mkQ();$('fb').textContent='';
+ $('q').textContent=cur.q;const o=$('opts');o.innerHTML='';
+ cur.o.forEach(t=>{const b=document.createElement('button');b.textContent=t;b.onclick=()=>answer(b,t);o.appendChild(b)});
+ status('Answer correctly to earn your move.');draw()}
+function answer(btn,t){if(phase!='q')return;const bs=[...$('opts').children];bs.forEach(b=>b.disabled=true);
+ if(t==cur.c){sc.r++;btn.classList.add('ok');phase='move';$('fb').textContent='Correct! Your move.';
+  if(!legal(B,me).length){$('fb').textContent='Correct, but you have no legal moves. Skipping.';setTimeout(online()?pushPass:ask,1200)}
+  else status(inCheck(B,me)?'Your king is in check. Move one of your pieces.':'Pick one of your pieces to move.')}
+ else{sc.w++;btn.classList.add('no');bs.find(b=>b.textContent==cur.c).classList.add('ok');phase='ai';
+  $('fb').textContent='Not quite. The answer was '+cur.c+'. You skip this turn.';if(online()){status('Turn passed to your opponent.');setTimeout(pushPass,1100)}else{status('AI is thinking…');setTimeout(aiMove,1100)}}
+ draw()}
+function finish(side){const o=legal(B,side);if(o.length)return false;
+ over=true;phase='end';status(inCheck(B,side)?(side==-me?'Checkmate! You win!':online()?'Checkmate. Your opponent wins.':'Checkmate. The AI wins.'):'Stalemate. It is a draw.');return true}
+function aiMove(){const m=aiPick(B);if(!m){if(!finish(-1)){setTimeout(ask,800)}draw();return}
+ B=ap(B,m[0],m[1]);last=m;draw();if(finish(1)){draw();return}
+ setTimeout(ask,1300)}
+function status(t){$('status').textContent=t}
+function click(i){if(phase!='move')return;const L=legal(B,me);
+ if(sel!==null&&hints.includes(i)){B=ap(B,sel,i);last=[sel,i];sel=null;hints=[];phase='wait';draw();const e=finish(-me);if(online()){push(e);return}if(e){draw();return}
+  status('AI is thinking…');setTimeout(aiMove,800);return}
+ if(B[i]&&isW(B[i])==(me==1)){sel=i;hints=L.filter(m=>m[0]==i).map(m=>m[1])}else{sel=null;hints=[]}
+ draw()}
+function draw(){const bd=$('board');bd.innerHTML='';
+ for(let k=0;k<64;k++){const i=flip?63-k:k;const d=document.createElement('div'),r=i>>3,c=i&7;
+  d.className='sq '+((r+c)%2?'d':'l')+(last.includes(i)?' last':'')+(sel===i?' sel':'')+(hints.includes(i)?' hint'+(B[i]?' cap':''):'');
+  d.setAttribute('role','gridcell');
+  if(B[i]){const s=document.createElement('span');s.className='pc '+(isW(B[i])?'w':'k');s.textContent=GL[B[i].toLowerCase()]+'\uFE0E';d.appendChild(s)}
+  d.onclick=()=>click(i);bd.appendChild(d)}
+ $('score').innerHTML=`<span>Correct: <b>${sc.r}</b></span><span>Wrong: <b>${sc.w}</b></span>`}
+const lobbyMsg=t=>{$('room').textContent=t};
+function wait(t){phase='wait';sel=null;hints=[];$('q').textContent=t;$('opts').innerHTML='';$('fb').textContent='';status(t)}
+async function setupDb(){if(dbs)return dbs;try{const[d,u]=await Promise.all([claude.use('db'),claude.use('user')]);if(!d)return null;dbs=d;myid=(u&&await u.id())||('g'+Math.random().toString(36).slice(2,10))}catch(e){return null}return dbs}
+function enter(d,side){if(unsub)unsub();mode='online';me=side;flip=side==-1;over=false;sel=null;hints=[];sc={r:0,w:0};phase='wait';
+ dbh=d.doc('games/'+code);lobbyMsg('Game code: '+code+' (you are '+(me==1?'white':'black')+')');
+ unsub=dbh.onSnapshot(onGame,()=>lobbyMsg('Lost connection to the game.'))}
+async function create(){const d=await setupDb();if(!d)return lobbyMsg('Online games need you to be signed in to claude.ai.');
+ code=Array.from({length:5},()=>'ABCDEFGHJKMNPQRSTUVWXYZ23456789'[R(0,30)]).join('');
+ try{await d.doc('games/'+code).set({b:JSON.stringify(START()),last:[],turn:'w',white:myid,black:'',res:'',winner:0})}catch(e){return lobbyMsg('Could not create the game. You may need Contributor access.')}
+ enter(d,1)}
+async function join(){const c=$('cd').value.trim().toUpperCase();if(!c)return lobbyMsg('Type a game code first.');const d=await setupDb();if(!d)return lobbyMsg('Online games need you to be signed in to claude.ai.');
+ try{const ref=d.doc('games/'+c),s=await ref.get();if(!s.exists)return lobbyMsg('No game with that code.');const g=s.data();let side;
+  if(g.white==myid)side=1;else if(g.black==myid)side=-1;else if(!g.black){await ref.update({black:myid});side=-1}else return lobbyMsg('That game is full.');
+  code=c;enter(d,side)}catch(e){lobbyMsg('Could not join that game.')}}
+function onGame(s){if(!s.exists)return;const g=s.data();B=JSON.parse(g.b);last=g.last||[];sel=null;hints=[];
+ if(g.res){over=true;phase='end';const t=g.res=='stale'?'Stalemate. It is a draw.':(g.winner==me?'Checkmate! You win!':'Checkmate. Your opponent wins.');status(t);$('q').textContent=t;$('opts').innerHTML='';$('fb').textContent='';draw();return}
+ if(!g.black){wait('Waiting for a friend. Share the code '+code+'.');draw();return}
+ if((g.turn=='w'?1:-1)==me){if(phase=='wait')ask();else draw()}else{wait('Opponent’s turn…');draw()}}
+function push(e){const u={b:JSON.stringify(B),last,turn:me==1?'b':'w'};if(e){u.res=inCheck(B,-me)?'mate':'stale';u.winner=me}
+ dbh.update(u).catch(()=>status('Move failed to send. Check your connection.'))}
+function pushPass(){phase='wait';dbh.update({turn:me==1?'b':'w'}).catch(()=>status('Could not pass the turn. Check your connection.'))}
+$('mk').onclick=create;$('jn').onclick=join;
+$('new').onclick=init;
+init();
+})();
+</script></body></html>
